@@ -2,90 +2,34 @@ import pandas as pd
 from tkinter import Tk, filedialog
 from tabulate import tabulate
 
-def calculate_invalid(df, x, a, b, op):
-    df2 = df.copy()
-    a = df2[a]
-    b = df2[b]
-    
-    df2[x] = op(a, b)
-    
-    mismatch = (df2[x] - df2[x]).abs() > 1e-2
-    invalid = df2[mismatch].copy()
-    
-    cols = list(invalid.columns)
-    x_index = cols.index(x)
-    cols.insert(x_index + 1, cols.pop(cols.index(x)))
-    
-    return invalid[cols]
 
-
-def check_tcv(df):
+def calculate_invalid(df, x, y, a, b, op):
     """
-    Manually calculates the Total Contract Value (TCV) via Total Progress to Date and Balance
-    and checks for mismatches.
+    Helper Function for calculating invalid values within a dataframe.
 
     Args:
-        df (df): Df of the export.
+        df (dataframe): dataframe to check.
+        x (String): The name of calculated column created to check against y.
+        y (String): The name of the column being verified.
+        a (String): The name of the first column to be used in the calculation.
+        b (String): The name of the second column to be used in the calculation.
+        op (Lambda): The operation to be performed on the two columns a and b.
 
     Returns:
-        df: Df of the export with rows where TCV is not equal to the calculated TCV.
+        df: Df of the export with rows where the calculated column does not match the expected value.
     """
+    # copy df and create calculated column
     df2 = df.copy()
-    df2["Calculated TCV (TPD + Balance)"] = df2["Total Progress to Date"] + df2["Balance"]
-    
-    mismatch = (df2["Total Contract Value"] - df2["Calculated TCV (TPD + Balance)"]).abs() > 1e-2
+    df2[x] = op(df2[a], df2[b])
+
+    #  check for invalid values
+    mismatch = (df2[y] - df2[x]).abs() > 1e-2
     invalid = df2[mismatch].copy()
 
+    #  insert calculated column next to the expected column
     cols = list(invalid.columns)
-    tcv_index = cols.index("Total Contract Value")
-    cols.insert(tcv_index + 1, cols.pop(cols.index("Calculated TCV (TPD + Balance)")))
-
-    return invalid[cols]
-
-
-def check_tpd_calculation_prev_curr(df):
-    """
-    Manually calculates the Total Progress to Date (TPD) via Previous Billed and Current Billing
-    and checks for mismatches.
-
-    Args:
-        df (dataframe): Df of the export.
-
-    Returns:
-        df: Df of the export with rows where TPD is not equal to the calculated TPD.
-    """
-    df2 = df.copy()
-    df2["Calculated TPD (PB + CB)"] = df2["Previously Billed"] + df2["Current Billing"]
-
-    mismatch = (df2["Total Progress to Date"] - df2["Calculated TPD (PB + CB)"]).abs() > 1e-2
-    invalid = df2[mismatch].copy()
-
-    cols = list(invalid.columns)
-    tpd_index = cols.index("Total Progress to Date")
-    cols.insert(tpd_index + 1, cols.pop(cols.index("Calculated TPD (PB + CB)")))
-
-    return invalid[cols]
-
-
-def check_tpd_calculation_perc_complete(df):
-    """
-    Manually calculates the Total Progress to Date (TPD) via % Completed and checks for mismatches.
-
-    Args:
-        df (dataframe): Df of the export.
-
-    Returns:
-        df: Df of the export with rows where TPD is not equal to the calculated TPD.
-    """
-    df2 = df.copy()
-    df2["Calculated TPD (TCV * %C)"] = df2["Total Contract Value"] * df2["% Complete"]
-
-    mismatch = (df2["Total Progress to Date"] - df2["Calculated TPD (TCV * %C)"]).abs() > 1e-2
-    invalid = df2[mismatch].copy()
-
-    cols = list(invalid.columns)
-    tpd_index = cols.index("Total Progress to Date")
-    cols.insert(tpd_index + 1, cols.pop(cols.index("Calculated TPD (TCV * %C)")))
+    y_index = cols.index(y)
+    cols.insert(y_index + 1, cols.pop(cols.index(x)))
 
     return invalid[cols]
 
@@ -100,7 +44,8 @@ def check_percent_complete(df):
     Returns:
         df: Df of the export with rows where % Complete is not between 0 and 100.
     """
-    invalid = df[(df["% Complete"] < 0) | (df["% Complete"] > 100)]
+    perc_complete = df["% Complete"]
+    invalid = df[(perc_complete < 0) | (perc_complete > 100)]
     return invalid
 
 
@@ -168,22 +113,45 @@ def main():
     missing = check_empty_description(df)
     nan = check_nan(df)
     invalid_perc_complete = check_percent_complete(df)
-    invalid_tpd_perc_complete = check_tpd_calculation_perc_complete(df)
-    invalid_tpd_prev_curr = check_tpd_calculation_prev_curr(df)
-    invalid_tcv = calculate_invalid(df, "Total Contract Value", "Total Progress to Date", "Balance", lambda a, b: a + b)
-    
+    invalid_tpd_perc_complete = calculate_invalid(
+        df,
+        "Calculated TPD (TCV * %C)",
+        "Total Progress to Date",
+        "Total Contract Value",
+        "% Complete",
+        lambda a, b: a * b,
+    )
+    invalid_tpd_prev_curr = calculate_invalid(
+        df,
+        "Calculated TPD (PB + CB)",
+        "Total Progress to Date",
+        "Previously Billed",
+        "Current Billing",
+        lambda a, b: a + b,
+    )
+    invalid_tcv = calculate_invalid(
+        df,
+        "Calculated TCV (TPD + Balance)",
+        "Total Contract Value",
+        "Total Progress to Date",
+        "Balance",
+        lambda a, b: a + b,
+    )
+
     if not missing.empty:
         print("\nPrinting rows where Description is missing:")
         print(tabulate(missing, headers="keys", tablefmt="psql"))
-        
+
     if not nan.empty:
         print("\nPrinting rows where NaN values are present:")
         print(tabulate(nan, headers="keys", tablefmt="psql"))
-        
+
     if not invalid_perc_complete.empty:
-        print("\nPrinting rows where % Complete is invalid, not including missing rows: \n")
+        print(
+            "\nPrinting rows where % Complete is invalid, not including missing rows: \n"
+        )
         print(tabulate(invalid_perc_complete, headers="keys", tablefmt="psql"))
-    
+
     if not invalid_tpd_perc_complete.empty or not invalid_tpd_prev_curr.empty:
         print(
             "\nPrinting rows where Total Progress to Date is invalid, not including missing rows: \n"
