@@ -3,20 +3,39 @@ from tkinter import Tk, filedialog
 import os
 import re
 from copy import copy
-from datetime import datetime
+
 
 def get_date(backup):
+    """
+    Gets the date from the backup sheet and formats it for the output file name.
+
+    Args:
+        backup (workbook): The backup workbook to get the date from.
+
+    Raises:
+        Exception: If the date is not found in cell L1.
+
+    Returns:
+        String: Formatted date string for the output file name.
+    """
     sheet = backup["WR1"]
     date_cell = sheet["L1"].value
-    
+
     if date_cell:
         date = date_cell.strftime("%B %Y")
         return f"PCL Backup Export - {date}.xlsx"
     else:
         raise Exception("Date not found in cell L1.")
-    
-    
+
+
 def save_output(export, backup):
+    """
+    Generates the output file name and saves the export workbook.
+
+    Args:
+        export (workbook): The export workbook to save.
+        backup (workbook): The backup workbook to get the date from.
+    """
     # save to output
     os.makedirs("out", exist_ok=True)
     output_file = get_date(backup)
@@ -26,33 +45,16 @@ def save_output(export, backup):
     print("Saved output to: ", output_file)
 
 
-def copy_styles(filtered_data, export_sheet, keep_cols, curr):
-    for row in filtered_data:
-        filtered_cells = [cell for i, cell in enumerate(row) if i in keep_cols]
-
-        col_a = (
-            str(row[0].value).strip().lower() if len(row) > 0 and row[0].value else ""
-        )
-        if "description" in col_a:
-            continue
-
-        if all(
-            cell.value is None or str(cell.value).strip() == ""
-            for cell in filtered_cells
-        ):
-            continue
-
-        for col_i, cell in enumerate(filtered_cells, 1):
-            new_cell = export_sheet.cell(row=curr, column=col_i, value=cell.value)
-            if cell.has_style:
-                new_cell.number_format = copy(cell.number_format)
-
-        curr += 1
-    
-    return curr
-
-
 def get_cols(filtered_data):
+    """
+    Filters the data based on the columns to keep.
+
+    Args:
+        filtered_data (list): list of rows from the filtered data.
+
+    Returns:
+        list: list of data with the columns to keep.
+    """
     # define pattern for cols to keep
     pattern = re.compile(
         r"Description|Total Contract Value|% Complete|Total Progress to Date|Previously Billed|Current Billing|Balance",
@@ -74,7 +76,57 @@ def get_cols(filtered_data):
     return keep_cols
 
 
+def copy_styles(filtered_data, export_sheet, curr):
+    """
+    Copies the styles (specifically the number format) from the filtered data to the export sheet.
+    Increments the current row index for each new row added to the export sheet.
+
+    Args:
+        filtered_data (list): list of rows from the filtered data.
+        export_sheet (sheet): sheet to copy the styles to.
+        curr (int): current row index in the export sheet.
+
+    Returns:
+        curr (int): updated current row index in the export sheet.
+    """
+    keep_cols = get_cols(filtered_data)
+
+    for row in filtered_data:
+        filtered_cells = [cell for i, cell in enumerate(row) if i in keep_cols]
+
+        col_a = (
+            str(row[0].value).strip().lower() if len(row) > 0 and row[0].value else ""
+        )
+        if "description" in col_a:
+            continue
+
+        if all(
+            cell.value is None or str(cell.value).strip() == ""
+            for cell in filtered_cells
+        ):
+            continue
+
+        for col_i, cell in enumerate(filtered_cells, 1):
+            new_cell = export_sheet.cell(row=curr, column=col_i, value=cell.value)
+            if cell.has_style:
+                new_cell.number_format = copy(cell.number_format)
+
+        curr += 1
+
+    return curr
+
+
 def get_filtered(sheet):
+    """
+    Filters the data from the current CoE backup sheet with constrains on the rows and columns.
+    Also filters based on criteria on columns A and B.
+
+    Args:
+        sheet (sheet): The current CoE backup sheet to process.
+
+    Returns:
+        list: Filtered data from the sheet.
+    """
     filtered_data = []
     for row in sheet.iter_rows(min_row=8, max_row=300, min_col=1, max_col=17):
         if all((cell.value is None or str(cell.value).strip() == "") for cell in row):
@@ -86,38 +138,46 @@ def get_filtered(sheet):
         col_b = (
             str(row[1].value).strip().lower() if len(row) > 1 and row[1].value else ""
         )
-        if "work release #" in col_a or "services fee" in col_a or "profit and overhead" in col_a or "work release #" in col_b or "totals" in col_b:
+        if (
+            "work release #" in col_a
+            or "services fee" in col_a
+            or "profit and overhead" in col_a
+            or "work release #" in col_b
+            or "totals" in col_b
+        ):
             continue
 
         filtered_data.append(row)
     return filtered_data
 
 
-def get_data(sheet):
-    data = list(
-        sheet.iter_rows(min_row=8, max_row=300, min_col=1, max_col=17, values_only=True)
-    )
-    return data
-
-
 def create_export(backup, target_sheets, export_sheet):
+    """
+    Creates the export sheet.
+
+    Args:
+        backup (workbook): The backup workbook.
+        target_sheets (sheets): The sheets to process.
+        export_sheet (sheet): The export sheet to write to.
+    """
     curr = 2
     for sheet in target_sheets:
         backup_sheet = backup[sheet]
-        
-        data = get_data(backup_sheet)
-        if not data:
-            continue
 
         filtered_data = get_filtered(backup_sheet)
         if not filtered_data:
             continue
 
-        keep_cols = get_cols(filtered_data)
-        curr = copy_styles(filtered_data, export_sheet, keep_cols, curr)
+        curr = copy_styles(filtered_data, export_sheet, curr)
 
 
 def add_headers(export_sheet):
+    """
+    Inserts headers into the export sheet.
+
+    Args:
+        export_sheet (workbook): The export sheet to add headers to.
+    """
     headers = [
         "Description",
         "Total Contract Value",
@@ -133,6 +193,20 @@ def add_headers(export_sheet):
 
 
 def get_sheets(input):
+    """
+    Takes in a file path and finds the start and end sheets for processing.
+    Returns the workbook and the sheets to process.
+
+    Args:
+        input (String): File path to the Excel file.
+
+    Raises:
+        Exception: If the start or end sheet is not found.
+        Exception: If the start sheet appears after the end sheet.
+
+    Returns:
+        : Workbook and list of sheets to process.
+    """
     # Load workbook
     backup = load_workbook(input)
     sheets = backup.sheetnames
@@ -154,6 +228,15 @@ def get_sheets(input):
 
 
 def get_file():
+    """
+    Creates a file dialog for the user to input a file path.
+
+    Raises:
+        Exception: If no file is selected.
+
+    Returns:
+        String: File path to the selected file.
+    """
     # init filedialog
     Tk().withdraw()
 
@@ -168,6 +251,9 @@ def get_file():
 
 
 def main():
+    """
+    Takes in a PCL CoE Backup file and produces a workable export file.
+    """
     input = get_file()
     backup, sheets = get_sheets(input)
 
