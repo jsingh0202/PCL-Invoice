@@ -108,8 +108,8 @@ def copy_styles(filtered_data, export_sheet, curr):
 
         for col_i, cell in enumerate(filtered_cells, 1):
             new_cell = export_sheet.cell(row=curr, column=col_i, value=cell.value)
-            if cell.has_style:
-                new_cell.number_format = copy(cell.number_format)
+            # if cell.has_style:
+            #     new_cell.number_format = copy(cell.number_format)
 
         curr += 1
 
@@ -128,10 +128,22 @@ def get_filtered(sheet):
         list: Filtered data from the sheet.
     """
     filtered_data = []
-    for row in sheet.iter_rows(min_row=8, max_row=300, min_col=1, max_col=17):
+    blank_rows = 0
+    last_blank = False
+    
+    for row in sheet.iter_rows(min_row=8, min_col=1, max_col=17):
+        if blank_rows == 10:
+            break
         if all((cell.value is None or str(cell.value).strip() == "") for cell in row):
+            if last_blank:
+                blank_rows += 1
+            else:
+                last_blank = True
             continue
-
+        
+        blank_rows = 0
+        last_blank = False
+        
         col_a = (
             str(row[0].value).strip().lower() if len(row) > 0 and row[0].value else ""
         )

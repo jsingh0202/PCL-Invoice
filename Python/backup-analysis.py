@@ -3,6 +3,23 @@ from tkinter import Tk, filedialog
 from tabulate import tabulate
 
 
+def get_small_values(df, col):
+    """
+    Helper Function for getting small values within a dataframe.
+
+    Args:
+        df (dataframe): dataframe to check.
+        col (String): The name of the column to be checked.
+
+    Returns:
+        df: Df of the export with rows where the column is between 0 and 1.
+    """
+    c = df[col]
+    invalid = df[(c > 0) & (c < 1)]
+
+    return invalid
+
+
 def calculate_invalid(df, x, y, a, b, op):
     """
     Helper Function for calculating invalid values within a dataframe.
@@ -45,7 +62,7 @@ def check_percent_complete(df):
         df: Df of the export with rows where % Complete is not between 0 and 100.
     """
     perc_complete = df["% Complete"]
-    invalid = df[(perc_complete < 0) | (perc_complete > 100)]
+    invalid = df[(perc_complete < 0) | (perc_complete > 1)]
     return invalid
 
 
@@ -61,7 +78,7 @@ def check_nan(df):
         df: Df of the export with rows where NaN values are present.
     """
     nan = df[df.isnull().any(axis=1)]
-    df.drop(nan.index, inplace=True)
+    # df.drop(nan.index, inplace=True)
     return nan
 
 
@@ -77,7 +94,7 @@ def check_empty_description(df):
         df: Df of the export with rows where the Work Release # number is not present.
     """
     missing = df[df["Description"].isnull()]
-    df.drop(missing.index, inplace=True)
+    # df.drop(missing.index, inplace=True)
     return missing
 
 
@@ -138,6 +155,22 @@ def main():
         lambda a, b: a + b,
     )
 
+    small_tcv = get_small_values(df, "Total Contract Value")
+    small_tpd = get_small_values(df, "Total Progress to Date")
+    small_pb = get_small_values(df, "Previously Billed")
+    small_cb = get_small_values(df, "Current Billing")
+    small_balance = get_small_values(df, "Balance")
+
+    small_values = pd.concat(
+        [
+            small_tcv,
+            small_tpd,
+            small_pb,
+            small_cb,
+            small_balance,
+        ]
+    ).drop_duplicates()
+
     if not missing.empty:
         print("\nPrinting rows where Description is missing:")
         print(tabulate(missing, headers="keys", tablefmt="psql"))
@@ -147,25 +180,23 @@ def main():
         print(tabulate(nan, headers="keys", tablefmt="psql"))
 
     if not invalid_perc_complete.empty:
-        print(
-            "\nPrinting rows where % Complete is invalid, not including missing rows: \n"
-        )
+        print("\nPrinting rows where % Complete is invalid: \n")
         print(tabulate(invalid_perc_complete, headers="keys", tablefmt="psql"))
 
     if not invalid_tpd_perc_complete.empty or not invalid_tpd_prev_curr.empty:
-        print(
-            "\nPrinting rows where Total Progress to Date is invalid, not including missing rows: \n"
-        )
+        print("\nPrinting rows where Total Progress to Date is invalid: \n")
         if not invalid_tpd_perc_complete.empty:
             print(tabulate(invalid_tpd_perc_complete, headers="keys", tablefmt="psql"))
         if not invalid_tpd_prev_curr.empty:
             print(tabulate(invalid_tpd_prev_curr, headers="keys", tablefmt="psql"))
 
     if not invalid_tcv.empty:
-        print(
-            "\nPrinting rows where Total Contract Value is invalid, not including missing rows: \n"
-        )
+        print("\nPrinting rows where Total Contract Value is invalid: \n")
         print(tabulate(invalid_tcv, headers="keys", tablefmt="psql"))
+
+    if not small_values.empty:
+        print("\nPrinting rows where values are too small: \n")
+        print(tabulate(small_values, headers="keys", tablefmt="psql"))
 
 
 if __name__ == "__main__":
