@@ -2,12 +2,6 @@ import pandas as pd
 from tkinter import Tk, filedialog
 from tabulate import tabulate
 
-def report(values):
-    segments = []
-    
-    
-
-
 def get_duplicates(df, col):
     """
     Helper Function for getting duplicate values within a dataframe.
@@ -27,6 +21,7 @@ def get_duplicates(df, col):
     invalid = df2[c.duplicated(keep=False)]
 
     return invalid
+
 
 def get_small_values(df, col):
     """
