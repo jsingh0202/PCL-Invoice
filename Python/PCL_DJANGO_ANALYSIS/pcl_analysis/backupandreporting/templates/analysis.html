@@ -1,0 +1,19 @@
+{% extends "base.html" %} {% load static %} {% block content %}
+
+<div class="container-fluid px-4">
+  <h1 class="mb-4">Analysis Report</h1>
+
+  {% for title, table_html in reporting.items %}
+  <div class="card mb-4">
+    <div class="card-header bg-primary text-white">{{ title }}</div>
+    <div class="card-body p-2">
+      <div class="table-viewport">{{ table_html|safe }}</div>
+    </div>
+  </div>
+  {% endfor %}
+
+  <body>
+    <script src="{% static 'js/analysis.js' %}"></script>
+  </body>
+</div>
+{% endblock %}

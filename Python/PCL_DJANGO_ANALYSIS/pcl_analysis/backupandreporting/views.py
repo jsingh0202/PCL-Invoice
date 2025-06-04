@@ -1,20 +1,52 @@
+import tempfile
+import uuid
+from django.http import FileResponse
 from django.shortcuts import render, HttpResponse
-from .forms import UploadFileForm
-from .utils.generate import generate_backup
-# Create your views here.
+
+from .utils.generate.generate import generate_export
+from .utils.analysis.analyse import analyze
+import os
+
+
 def generate(request):
-    print(request)
     if request.method == "POST":
-        form = UploadFileForm(request.POST, request.FILES)
-        if form.is_valid():
-            # Handle the uploaded file
-            file = request.FILES['file']
-            # Save the file or process it as needed
-            # For example, you can save it to a specific location
-           
-            # Call the generate_report function
-            backup = generate_backup(file)
-            return render(request, "generate.html", {"backup": backup})
-    else:
-        form = UploadFileForm()
-    return render(request, "upload.html", {"form": form})
+        file = request.FILES.get("file")
+        if file:
+            # Generate Excel
+            workbook = generate_export(file)
+
+            # Save to temp file with unique name
+            temp_dir = tempfile.gettempdir()
+            export_id = uuid.uuid4()
+            file_path = os.path.join(temp_dir, f"export_{export_id}.xlsx")
+            workbook.save(file_path)
+
+            return render(
+                request,
+                "generate.html",
+                {
+                    "download_url": f"/download/?file={file_path}",
+                    "analyze_url": f"/analysis/?file={file_path}",
+                },
+            )
+
+    return render(request, "upload.html")
+
+
+def download(request):
+    file_path = request.GET.get("file")
+    if file_path and os.path.exists(file_path):
+        return FileResponse(
+            open(file_path, "rb"),
+            filename="export.xlsx",
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+    return HttpResponse("File not found", status=404)
+
+
+def analysis(request):
+    file_path = request.GET.get("file")
+    if file_path and os.path.exists(file_path):
+        results = analyze(file_path)  # This returns the reporting_values dict
+        return render(request, "analysis.html", {"reporting": results})
+    return HttpResponse("File not found", status=404)

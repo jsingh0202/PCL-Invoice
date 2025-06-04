@@ -1,0 +1,84 @@
+body {
+  padding-top: 4rem;
+  overflow-y: auto;
+  background-color: #f8f9fa;
+}
+
+table {
+  min-width: 400px;
+}
+
+.analysis-value pre {
+  max-height: 300px;
+  overflow-y: auto;
+  background: #f8f9fa;
+  padding: 10px;
+  border-radius: 4px;
+}
+
+.card {
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+.container {
+  max-width: 500px;
+}
+
+.custom-table th, .custom-table td {
+  white-space: nowrap;
+}
+
+.custom-table {
+  min-width: 400px;
+  table-layout: auto;
+}
+
+.footer {
+  padding: 2rem 0;
+  text-align: center;
+  color: #6c757d;
+}
+
+.table-container table {
+  margin-bottom: 0;
+  width: 100%;
+  table-layout: auto;
+}
+
+.table-hover tbody tr:hover {
+  background-color: #f8f9fa;
+  cursor: pointer;
+}
+
+.table th.text-end,
+.table td.text-end {
+  padding-right: 1.5rem;
+}
+
+.table tfoot {
+  font-weight: bold;
+  background-color: #e9ecef;
+}
+
+.table td,
+.table th {
+  vertical-align: middle;
+}
+
+.table-scroll-wrapper {
+  overflow-x: auto;
+  width: 100%;
+}
+
+.table-viewport {
+  max-height: 400px;
+  overflow-y: auto;
+  margin-bottom: 1rem;
+  border: 1px solid #dee2e6;
+  border-radius: 0.25rem;
+}

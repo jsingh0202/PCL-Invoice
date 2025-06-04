@@ -139,10 +139,10 @@ def get_filtered(sheet):
             else:
                 last_blank = True
             continue
-        
+
         blank_rows = 0
         last_blank = False
-        
+
         col_a = (
             str(row[0].value).strip().lower() if len(row) > 0 and row[0].value else ""
         )
@@ -157,12 +157,12 @@ def get_filtered(sheet):
             or "totals" in col_b
         ):
             continue
-        
+
         if sheet.title.lower().strip() == "p&oh":
             row[0].value = "A." + str(row[0].value)
         elif sheet.title.lower().strip() == "fixed fee":
             row[0].value = "B." + str(row[0].value)
-        
+
         filtered_data.append(row)
     return filtered_data
 
@@ -243,34 +243,10 @@ def get_sheets(input):
     return backup, target_sheets
 
 
-# def get_file():
-#     """
-#     Creates a file dialog for the user to input a file path.
-
-#     Raises:
-#         Exception: If no file is selected.
-
-#     Returns:
-#         String: File path to the selected file.
-#     """
-#     # init filedialog
-#     Tk().withdraw()
-
-#     # File dialog
-#     print("Select your Excel file: ")
-#     input = filedialog.askopenfilename(
-#         title="Select Excel File", filetypes=[("Excel Files", "*xlsx")]
-#     )
-#     if not input:
-#         raise Exception("No file selected.")
-#     return input
-
-
-def generate_backup(input):
+def generate_export(input):
     """
     Takes in a PCL CoE Backup file and produces a workable export file.
     """
-    # input = get_file()
     backup, sheets = get_sheets(input)
 
     # create new workbook
@@ -280,6 +256,5 @@ def generate_backup(input):
 
     add_headers(export_sheet)
     create_export(backup, sheets, export_sheet)
-    
+
     return export
-    # save_output(export, backup)

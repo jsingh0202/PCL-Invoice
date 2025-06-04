@@ -1,6 +1,8 @@
 from django.urls import path
-from .views import generate
+from .views import generate, analysis, download
 
 urlpatterns = [
-    path("generate", generate, name="generate"),
+    path("generate/", generate, name="generate"),
+    path("analysis/", analysis, name="analysis"),
+    path("download/", download, name="download"),
 ]
