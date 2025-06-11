@@ -3,6 +3,29 @@ import re
 from copy import copy
 
 
+def get_date(backup):
+    """
+    Gets the date from the backup sheet and formats it for the output file name.
+
+    Args:
+        backup (workbook): The backup workbook to get the date from.
+
+    Raises:
+        Exception: If the date is not found in cell L1.
+
+    Returns:
+        String: Formatted date string for the output file name.
+    """
+    sheet = backup["WR1"]
+    date_cell = sheet["L1"].value
+
+    if date_cell:
+        date = date_cell.strftime("%B %Y")
+        return date
+    else:
+        raise Exception("Date not found in cell L1.")
+
+
 def get_cols(filtered_data):
     """
     Filters the data based on the columns to keep.
@@ -218,9 +241,11 @@ def generate_export(input):
     # create new workbook
     export = Workbook()
     export_sheet = export.active
-    export_sheet.title = "Export"
+    if export_sheet is not None:
+        export_sheet.title = "Export"
 
     add_headers(export_sheet)
     create_export(backup, sheets, export_sheet)
-
-    return export
+    date = get_date(backup)
+    
+    return export, date

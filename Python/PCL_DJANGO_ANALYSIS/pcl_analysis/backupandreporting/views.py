@@ -29,8 +29,9 @@ def generate(request):
         file = request.FILES.get("file")
         if file:
             # Generate Excel
-            workbook = generate_export(file)
-
+            workbook, date = generate_export(file)
+            request.session["date"] = date
+            
             # Save to temp file with unique name
             temp_dir = tempfile.gettempdir()
             export_id = uuid.uuid4()
@@ -52,9 +53,10 @@ def generate(request):
 def download(request):
     file_path = request.GET.get("file")
     if file_path and os.path.exists(file_path):
+        date = request.session.get("date")
         return FileResponse(
             open(file_path, "rb"),
-            filename="export.xlsx",
+            filename=f"{date} Export.xlsx",
             content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         )
     return HttpResponse("File not found", status=404)
@@ -162,4 +164,6 @@ def analysis_pdf(request):
 
     doc.build(elements)
     buffer.seek(0)
-    return FileResponse(buffer, as_attachment=True, filename="analysis_report.pdf")
+    
+    date = request.session.get("date")
+    return FileResponse(buffer, as_attachment=True, filename=f"{date} Report.pdf")
