@@ -18,3 +18,18 @@ target/
 
 **/out
 **/venv
+**.build
+
+**/credentials.json
+**/token.json
+
+# Django #
+*.log
+*.pot
+*.pyc
+__pycache__
+db.sqlite3
+media
+
+# Backup files # 
+*.bak 

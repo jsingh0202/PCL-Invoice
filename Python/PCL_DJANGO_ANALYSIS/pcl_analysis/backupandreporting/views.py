@@ -3,8 +3,8 @@ import uuid
 from django.http import FileResponse
 from django.shortcuts import render, HttpResponse
 
-from .utils.generate.generate import generate_export
-from .utils.analysis.analyse import analyze
+from .utils.generate.wr_export import generate_export
+from .utils.analysis.export import analyze
 import os
 
 

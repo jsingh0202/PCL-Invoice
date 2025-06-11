@@ -1,48 +1,6 @@
 from openpyxl import load_workbook, Workbook
-from tkinter import Tk, filedialog
-import os
 import re
 from copy import copy
-
-
-def get_date(backup):
-    """
-    Gets the date from the backup sheet and formats it for the output file name.
-
-    Args:
-        backup (workbook): The backup workbook to get the date from.
-
-    Raises:
-        Exception: If the date is not found in cell L1.
-
-    Returns:
-        String: Formatted date string for the output file name.
-    """
-    sheet = backup["WR1"]
-    date_cell = sheet["L1"].value
-
-    if date_cell:
-        date = date_cell.strftime("%B %Y")
-        return f"PCL Backup Export - {date}.xlsx"
-    else:
-        raise Exception("Date not found in cell L1.")
-
-
-def save_output(export, backup):
-    """
-    Generates the output file name and saves the export workbook.
-
-    Args:
-        export (workbook): The export workbook to save.
-        backup (workbook): The backup workbook to get the date from.
-    """
-    # save to output
-    os.makedirs("out", exist_ok=True)
-    output_file = get_date(backup)
-    output_path = os.path.join("out", output_file)
-    export.save(output_path)
-
-    print("Saved output to: ", output_file)
 
 
 def get_cols(filtered_data):
@@ -89,9 +47,11 @@ def copy_styles(filtered_data, export_sheet, curr):
     Returns:
         curr (int): updated current row index in the export sheet.
     """
-    keep_cols = get_cols(filtered_data)
-
-    for row in filtered_data:
+    # Unpack just the rows for get_cols
+    rows_only = [row for row, _ in filtered_data]
+    keep_cols = get_cols(rows_only)
+    
+    for row, cell_location in filtered_data:
         filtered_cells = [cell for i, cell in enumerate(row) if i in keep_cols]
 
         col_a = (
@@ -105,8 +65,11 @@ def copy_styles(filtered_data, export_sheet, curr):
             for cell in filtered_cells
         ):
             continue
-
-        for col_i, cell in enumerate(filtered_cells, 1):
+        
+        # Write the index as the first column
+        export_sheet.cell(row=curr, column=1, value=cell_location)
+        
+        for col_i, cell in enumerate(filtered_cells, 2):
             new_cell = export_sheet.cell(row=curr, column=col_i, value=cell.value)
             if cell.has_style:
                 new_cell.number_format = copy(cell.number_format)
@@ -158,12 +121,14 @@ def get_filtered(sheet):
         ):
             continue
 
-        if sheet.title.lower().strip() == "p&oh":
-            row[0].value = "A." + str(row[0].value)
-        elif sheet.title.lower().strip() == "fixed fee":
-            row[0].value = "B." + str(row[0].value)
+        # if sheet.title.lower().strip() == "p&oh":
+        #     row[0].value = "A." + str(row[0].value)
+        # elif sheet.title.lower().strip() == "fixed fee":
+        #     row[0].value = "B." + str(row[0].value)
 
-        filtered_data.append(row)
+        # Find the cell location of the first cell in the row
+        cell_location = f"{sheet.title}-{row[0].coordinate}"
+        filtered_data.append((row, cell_location))
     return filtered_data
 
 
@@ -195,6 +160,7 @@ def add_headers(export_sheet):
         export_sheet (workbook): The export sheet to add headers to.
     """
     headers = [
+        "Index",
         "Description",
         "Total Contract Value",
         "% Complete",

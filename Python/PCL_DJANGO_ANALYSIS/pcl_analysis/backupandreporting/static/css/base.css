@@ -8,6 +8,10 @@ table {
   min-width: 400px;
 }
 
+th {
+  text-align: center;
+}
+
 .analysis-value pre {
   max-height: 300px;
   overflow-y: auto;
@@ -76,7 +80,7 @@ table {
 }
 
 .table-viewport {
-  max-height: 400px;
+  max-height: 500px;
   overflow-y: auto;
   margin-bottom: 1rem;
   border: 1px solid #dee2e6;

@@ -1,7 +1,44 @@
 import pandas as pd
 from tkinter import Tk, filedialog
-from tabulate import tabulate
-import json
+from .sheetdata import get_data
+from decimal import Decimal, ROUND_HALF_UP
+
+
+def compare_to_overhaul(df):
+    """Compares the 'TCV' amounts in the DataFrame to the values from the Overhaul data.2
+
+    Args:
+        df (dataframe): DataFrame containing the export data.
+
+    Returns:
+        Dataframe: DataFrame containing rows where the 'TCV' amount does not match the Overhaul data.
+    """
+    data: dict = get_data()
+
+    df2 = df.copy()
+    nan = df2[df2.isnull().any(axis=1)]
+    df2.drop(nan.index, inplace=True)
+    
+    df2["Expected Value"] = df2["Description"].apply(
+        lambda desc: data.get(desc, Decimal("NaN"))
+    )
+
+    invalid = df2[
+        df2.apply(
+            lambda row: Decimal(str(row["Total Contract Value"]))
+            .quantize(Decimal("0.01"))
+            .normalize()
+            != row["Expected Value"],
+            axis=1,
+        )
+    ]
+
+    cols = list(invalid.columns)
+    tv_index = cols.index("Total Contract Value")
+    ev_index = cols.index("Expected Value")
+    cols.insert(tv_index + 1, cols.pop(ev_index))
+
+    return invalid[cols]
 
 
 def html_df(df):
@@ -52,7 +89,7 @@ def get_small_values(df, col):
         df: Df of the export with rows where the column is between 0 and 1.
     """
     c = df[col]
-    invalid = df[(c > 0) & (c < 1)]
+    invalid = df[(c > 0) & (c < 1) | (c < 0) & (c > -1)]
 
     return invalid
 
@@ -209,15 +246,30 @@ def analyze(file_path):
 
     duplicated_wrs = get_duplicates(df, "Description")
 
+    incorrect_billing = compare_to_overhaul(df)
+
     reporting_values = {
         "Missing Description - Rows where 'Description' is blank": html_df(missing),
         "NaN Values - Rows where 'NaN' values appear": html_df(nan),
-        "Invalid % Complete - Rows where '% Complete' is either greater than 1 or less than 0": html_df(invalid_perc_complete),
-        "Invalid TPD (% Complete) - Rows where 'TPD' is not equal to TCV * % Complete": html_df(invalid_tpd_perc_complete),
-        "Invalid TPD (PB + CB) - Rows where 'TPD' is not equal to PB + CB": html_df(invalid_tpd_prev_curr),
-        "Invalid TCV - Rows where 'TCV' is not equal to TPD + Balance": html_df(invalid_tcv),
+        "Invalid % Complete - Rows where '% Complete' is either greater than 1 or less than 0": html_df(
+            invalid_perc_complete
+        ),
+        "Invalid TPD (% Complete) - Rows where 'TPD' is not equal to TCV * % Complete": html_df(
+            invalid_tpd_perc_complete
+        ),
+        "Invalid TPD (PB + CB) - Rows where 'TPD' is not equal to PB + CB": html_df(
+            invalid_tpd_prev_curr
+        ),
+        "Invalid TCV - Rows where 'TCV' is not equal to TPD + Balance": html_df(
+            invalid_tcv
+        ),
         "Small Values - Rows with values that are very small": html_df(small_values),
-        "Duplicate WRs - Rows where a WR shows up more than once": html_df(duplicated_wrs),
+        "Duplicate WRs - Rows where a WR shows up more than once": html_df(
+            duplicated_wrs
+        ),
+        "Incorrect Billing - Rows where the 'TCV' amount does not match the agreed amount": html_df(
+            incorrect_billing
+        ),
     }
 
     # print(reporting_values)
