@@ -1,7 +1,9 @@
 {% extends "base.html" %} {% load static %} {% block content %}
 
+
 <div class="container-fluid px-4">
   <h1 class="mb-4">Analysis Report</h1>
+  <a href="{% url 'analysis_pdf' %}?file={{ request.GET.file }}" class="btn btn-danger mb-3">Download PDF</a>
 
   {% for title, table_html in reporting.items %}
   <div class="card mb-4">

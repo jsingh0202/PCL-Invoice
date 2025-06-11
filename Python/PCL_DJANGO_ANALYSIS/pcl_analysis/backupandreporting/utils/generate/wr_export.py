@@ -121,10 +121,10 @@ def get_filtered(sheet):
         ):
             continue
 
-        # if sheet.title.lower().strip() == "p&oh":
-        #     row[0].value = "A." + str(row[0].value)
-        # elif sheet.title.lower().strip() == "fixed fee":
-        #     row[0].value = "B." + str(row[0].value)
+        if sheet.title.lower().strip() == "p&oh":
+            row[0].value = "A." + str(row[0].value)
+        elif sheet.title.lower().strip() == "fixed fee":
+            row[0].value = "B." + str(row[0].value)
 
         # Find the cell location of the first cell in the row
         cell_location = f"{sheet.title}-{row[0].coordinate}"
