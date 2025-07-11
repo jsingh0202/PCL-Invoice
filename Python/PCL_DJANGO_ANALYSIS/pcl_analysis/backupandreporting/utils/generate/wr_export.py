@@ -1,6 +1,6 @@
+from copy import copy
 from openpyxl import load_workbook, Workbook
 import re
-from copy import copy
 
 
 def get_date(backup):
@@ -119,7 +119,7 @@ def get_filtered(sheet):
     for row in sheet.iter_rows(min_row=8, min_col=1, max_col=17):
         if blank_rows == 10:
             break
-        if all((cell.value is None or str(cell.value).strip() == "") for cell in row):
+        if all((cell.value is None or str(cell.value).strip() == "" or str(cell.value).strip() == "0") for cell in row):
             if last_blank:
                 blank_rows += 1
             else:
@@ -144,10 +144,10 @@ def get_filtered(sheet):
         ):
             continue
 
-        if sheet.title.lower().strip() == "p&oh":
-            row[0].value = "A." + str(row[0].value)
-        elif sheet.title.lower().strip() == "fixed fee":
-            row[0].value = "B." + str(row[0].value)
+        # if sheet.title.lower().strip() == "p&oh":
+        #     row[0].value = "A." + str(row[0].value)
+        # elif sheet.title.lower().strip() == "fixed fee":
+        #     row[0].value = "B." + str(row[0].value)
 
         # Find the cell location of the first cell in the row
         cell_location = f"{sheet.title}-{row[0].coordinate}"

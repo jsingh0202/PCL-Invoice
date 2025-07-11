@@ -12,8 +12,8 @@ from googleapiclient.errors import HttpError
 SCOPES = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
 
 # The ID and range of a sample spreadsheet.
-OVERHAUL = "1pmzLJFCFhaiNhGL4wHo4dpRlGq1FAt59g065cfL1B1k"
-MAY_SHEET = "2025.05!A2:M"
+COST_SUMMARY = "1R_lUhoo05uPWMsLXFUwkgUxzJa6yXi2I8pNp_xPSI_Y"
+PCL_CODE_DICT = "PCL_CODE_DICT"
 BASE_DIR = Path(__file__).resolve().parent
 
 
@@ -40,29 +40,48 @@ def get_data() -> dict:
         with open(token_path, "w") as token:
             token.write(creds.to_json())
 
-    overhaul_data = {}
+    cost_summary_data = {}
 
     try:
         service = build("sheets", "v4", credentials=creds)
 
         # Call the Sheets API
         sheet = service.spreadsheets()
-        result = sheet.values().get(spreadsheetId=OVERHAUL, range=MAY_SHEET).execute()
+        result = (
+            sheet.values()
+            .get(spreadsheetId=COST_SUMMARY, range=PCL_CODE_DICT)
+            .execute()
+        )
         values = result.get("values", [])
 
         if not values:
             print("No data found.")
             raise ValueError("No data found in the specified range.")
 
+        # get the code and budget values
+        headers = values[0]
+        code_idx = headers.index("PCL_Code")
+        budget_idx = headers.index("Budget")
+
+        code_budget = [
+            (row[code_idx], row[budget_idx])
+            for row in values[1:]
+            if len(row) > max(code_idx, budget_idx)
+        ]
+
+        # print("Code and Budget Values:")
+        # print(code_budget)
         # print("Name, Major:")
-        for row in values:
-            # print(f"{row[0]}, {row[8]}")
-            overhaul_data[row[0]] = Decimal(row[8].replace(",", ""))
+        
+        for code, budget in code_budget:
+            # print(f"{code}, {budget}")
+            cleaned_budget = budget.replace("$", "").replace(",", "").strip()
+            cost_summary_data[code] = Decimal(cleaned_budget)
 
     except HttpError as err:
         print(err)
 
-    return overhaul_data
+    return cost_summary_data
 
 
 if __name__ == "__main__":

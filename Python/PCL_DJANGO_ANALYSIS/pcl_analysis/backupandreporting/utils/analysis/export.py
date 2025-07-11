@@ -4,7 +4,6 @@ from .sheetdata import get_data
 from decimal import Decimal, ROUND_HALF_UP
 
 
-
 def compare_to_overhaul(df):
     """Compares the 'TCV' amounts in the DataFrame to the values from the Overhaul data.2
 
@@ -19,7 +18,7 @@ def compare_to_overhaul(df):
     df2 = df.copy()
     nan = df2[df2.isnull().any(axis=1)]
     df2.drop(nan.index, inplace=True)
-    
+
     df2["Expected Value"] = df2["Description"].apply(
         lambda desc: data.get(desc, Decimal("NaN"))
     )
@@ -91,6 +90,24 @@ def get_small_values(df, col):
     """
     c = df[col]
     invalid = df[(c > 0) & (c < 1) | (c < 0) & (c > -1)]
+
+    return invalid
+
+
+def get_tpd_greater_than_tcv(df):
+    """
+    Helper Function for getting rows where TPD is greater than TCV.
+
+    Args:
+        df (dataframe): dataframe to check.
+
+    Returns:
+        df: Df of the export with rows where TPD is greater than TCV.
+    """
+    tpd = df["Total Progress to Date"]
+    tcv = df["Total Contract Value"]
+
+    invalid = df[tpd > tcv]
 
     return invalid
 
@@ -229,6 +246,8 @@ def analyze(file_path):
         lambda a, b: a + b,
     )
 
+    tpd_greater_tcv = get_tpd_greater_than_tcv(df)
+
     small_tcv = get_small_values(df, "Total Contract Value")
     small_tpd = get_small_values(df, "Total Progress to Date")
     small_pb = get_small_values(df, "Previously Billed")
@@ -260,6 +279,9 @@ def analyze(file_path):
         ),
         "Invalid TPD (PB + CB) - Rows where 'TPD' is not equal to PB + CB": html_df(
             invalid_tpd_prev_curr
+        ),
+        "Invalid TPD - Rows where 'TPD' is greater than 'TCV'": html_df(
+            tpd_greater_tcv
         ),
         "Invalid TCV - Rows where 'TCV' is not equal to TPD + Balance": html_df(
             invalid_tcv
