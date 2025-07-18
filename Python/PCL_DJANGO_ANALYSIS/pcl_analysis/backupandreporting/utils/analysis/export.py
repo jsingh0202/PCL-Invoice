@@ -1,7 +1,28 @@
 import pandas as pd
 from tkinter import Tk, filedialog
-from .sheetdata import get_data
-from decimal import Decimal, ROUND_HALF_UP
+from .sheetdata import get_code_and_budget, get_code_and_delete
+from decimal import Decimal
+
+
+def check_code_deleted(df, code_delete):
+    df2 = df.copy()
+    pcl_codes = df2["Description"]
+    
+    deleted_codes = [key for key in pcl_codes.values if code_delete.get(key) == "TRUE"]
+    filtered_df = df2[pcl_codes.isin(deleted_codes)]
+
+    return filtered_df
+
+
+def check_code_dne(df, code_delete):
+    df2 = df.copy()
+    pcl_codes = df2["Description"]
+    sma_codes = list(code_delete.keys())
+
+    codes_sma_dne = [code for code in pcl_codes.values if code not in sma_codes]
+    filtered_df = df2[pcl_codes.isin(codes_sma_dne)]
+
+    return filtered_df
 
 
 def compare_to_overhaul(df):
@@ -13,7 +34,7 @@ def compare_to_overhaul(df):
     Returns:
         Dataframe: DataFrame containing rows where the 'TCV' amount does not match the Overhaul data.
     """
-    data: dict = get_data()
+    data: dict = get_code_and_budget()
 
     df2 = df.copy()
     nan = df2[df2.isnull().any(axis=1)]
@@ -267,6 +288,10 @@ def analyze(file_path):
     duplicated_wrs = get_duplicates(df, "Description")
 
     incorrect_billing = compare_to_overhaul(df)
+    code_delete_data = get_code_and_delete()
+
+    code_dne = check_code_dne(df, code_delete_data)
+    deleted_codes = check_code_deleted(df, code_delete_data)
 
     reporting_values = {
         "Missing Description - Rows where 'Description' is blank": html_df(missing),
@@ -293,6 +318,8 @@ def analyze(file_path):
         "Incorrect Billing - Rows where the 'TCV' amount does not match the agreed amount": html_df(
             incorrect_billing
         ),
+        "These codes do not exist within SMA's database": html_df(code_dne),
+        "These codes have been deleted from SMA's database": html_df(deleted_codes),
     }
 
     # print(reporting_values)

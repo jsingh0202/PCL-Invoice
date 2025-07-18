@@ -137,9 +137,11 @@ def get_filtered(sheet):
         )
         if (
             "work release #" in col_a
+            or "change order no:" in col_a
             or "services fee" in col_a
             or "profit and overhead" in col_a
             or "work release #" in col_b
+            or "change order no:" in col_b
             or "totals" in col_b
         ):
             continue
@@ -217,7 +219,9 @@ def get_sheets(input):
     sheets = backup.sheetnames
 
     # find sheets
-    start = next((i for i, s in enumerate(sheets) if s.strip().lower() == "wr1"), None)
+    start = next((i for i, s in enumerate(sheets) if s.strip().lower() == "co"), None)
+    if start is None:
+        start = next((i for i, s in enumerate(sheets) if s.strip().lower() == "wr1"), None)
     end = next(
         (i for i, s in enumerate(sheets) if s.strip().lower() == "fixed fee"), None
     )
